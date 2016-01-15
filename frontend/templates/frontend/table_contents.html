@@ -1,0 +1,15 @@
+{% load table_tags %}
+<table border="1">
+<tr>
+{% for header in contents.columns %}
+	<td>{% convert_attribute_name header %}</td>
+{% endfor %}
+</tr>
+
+{% for c in contents %}
+<tr>
+	{% print_row c contents %}
+</tr>
+{% endfor %}
+</table>
+
