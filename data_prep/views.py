@@ -17,7 +17,7 @@ def fetchBackgroundInfo(request):
 #                 In common law countries, sales are governed generally by the common law and commercial codes. In the United States, the laws governing sales of goods are somewhat uniform to the extent that most jurisdictions have adopted Article 2 of the Uniform Commercial Code, albeit with some non-uniform variations.
 #                 ''']
     logger.info('Contents fetched')
-    tupleList = parseContents(contents)
+#     tupleList = parseContents(contents)
     authenticate("localhost:7474", "neo4j", "root")
     graph = Graph()
     try:
@@ -26,7 +26,7 @@ def fetchBackgroundInfo(request):
         graph.schema.create_uniqueness_constraint('object', 'phrase')
     except:
         pass
-    for tup in tupleList:
+    for tup in parseContents(contents):
         try:
             nodeNp1 = graph.create(Node("subject", phrase=tup[0].lower()))
         except:
@@ -53,4 +53,4 @@ def fetchBackgroundInfo(request):
         vpNp2Dep = Relationship(nodeVp, "DEPENDS", nodeNp2, weight=0)
         graph.create_unique(vpNp1Dep)
         graph.create_unique(vpNp2Dep)
-    return HttpResponse(len(tupleList))
+    return HttpResponse("true")

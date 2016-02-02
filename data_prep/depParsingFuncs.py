@@ -2,10 +2,8 @@ import re
 from nltk import sent_tokenize
 from data_prep.open_nlp import OpenNLP
 from nltk.corpus import stopwords
-import logging
+import sys
 
-
-logger = logging.getLogger(__name__)
 
 def parseContents(contentList):
     tupleList = []
@@ -18,57 +16,38 @@ def parseContents(contentList):
         content = content.replace('\n','')
         sentences = sent_tokenize(content)
         for sentence in sentences:
+            print('#'+sentence, file=sys.stderr)
             pos = posTagger.parse(sentence)
             chunks = chunker.parse(pos)
             chunks = chunks.decode()
             # finding first matching NP
-            NP1 = re.search(r"\[NP (\w+\s?[\.,!]*)+\]",chunks)
+            NP1 = re.search(r"\[NP (\w+\s?[$&+,:;=?@#|'<>.^*()%!-]*)+\]",chunks)
             if NP1:
                 chunks = chunks.replace(NP1.group(), '')
                 NP1 = NP1.group().replace('[NP','').replace(']','')
                 NP1 = re.sub(r"_(\w)+", '', NP1).strip()
             
             # finding first VP
-            VP = re.search(r"\[VP (\w+\s?[\.,!]*)+\]",chunks)
+            VP = re.search(r"\[VP (\w+\s?[$&+,:;=?@#|'<>.^*()%!-]*)+\]",chunks)
             if VP:
                 chunks = chunks.replace(VP.group(), '')
                 VP = VP.group().replace('[VP','').replace(']','')
                 VP = re.sub(r"_(\w)+", '', VP).strip()
                 # if VP is a stopword then select next NP as VP
                 if VP in stopwords.words():
-                    VP = re.search(r"\[NP (\w+\s?[\.,!]*)+\]",chunks)
+                    VP = re.search(r"\[NP (\w+\s?[$&+,:;=?@#|'<>.^*()%!-]*)+\]",chunks)
                     if VP:
                         chunks = chunks.replace(VP.group(), '')
                         VP = VP.group().replace('[NP','').replace(']','')
                         VP = re.sub(r"_(\w)+", '', VP).strip() 
             
             # finding 2nd NP 
-            NP2 = re.search(r"\[NP (\w+\s?[\.,!]*)+\]",chunks)
+            NP2 = re.search(r"\[NP (\w+\s?[$&+,:;=?@#|'<>.^*()%!-]*)+\]",chunks)
             if NP2:
                 chunks = chunks.replace(NP2.group(), '')
                 NP2 = NP2.group().replace('[NP','').replace(']','')
                 NP2 = re.sub(r"_(\w)+", '', NP2).strip()  
                                          
             if NP1 and VP and NP2:
-                tupleList.append((NP1, VP, NP2))
-            logger.info('('+str(NP1)+','+str(VP)+','+str(NP2)+')')
-#             chunks = chunks.split('] ')
-#             chunks = [c.split('[')[1] for c in chunks]
-#             chunks[-1] = chunks[-1].rstrip(']')
-#             NP1 = NP2 = VP = None
-#             for i in range(0, len(chunks)):
-#                 if NP1 and VP and NP2:
-#                     break
-#                 if not NP1 and chunks[i].startswith("NP"):
-#                     NP1 = chunks[i]
-#                 elif NP1 and chunks[i].startswith("VP"):
-#                     VP = chunks[i+1]
-#                     i = i+1
-#                 elif NP1 and VP and chunks[i].startswith("NP"):
-#                     NP2 = chunks[i]
-            # typedDep = re.sub('[0-9-]+', "", typedDep)  # to remove numbers and '-'
-            # rx = re.compile("\((.+), (.+)\)")
-            # depGraphList.append(rx.findall(typedDep))
-            # import string
-            # string.split(inputString, '\n')  # --> ['Line 1', 'Line 2', 'Line 3']
-    return tupleList
+                # print(str((NP1, VP, NP2)), file=sys.stderr)
+                yield (NP1, VP, NP2)
