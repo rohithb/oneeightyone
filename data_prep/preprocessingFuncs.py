@@ -1,6 +1,6 @@
 import string
 from nltk.corpus import stopwords
-from urllib.request import urlopen
+from urllib.request import urlopen, Request
 from bs4 import BeautifulSoup
 import re
 from nltk.stem.wordnet import WordNetLemmatizer
@@ -32,7 +32,12 @@ def fetchSentsFromPages(urlList):
     for count in range(0, 1):
         link = urlList[count]
         try:
-            res = urlopen(link)
+            request_headers = {'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+             'Accept-Language': 'en-US,en;q=0.5',
+             'Connection': 'keep-alive',
+             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:40.0) Gecko/20100101 Firefox/40.0'}
+            request = Request(link, headers=request_headers)
+            res = urlopen(request)
         except:
             continue
         soup = BeautifulSoup(''.join(res.read().decode('utf-8')), "lxml")
@@ -43,12 +48,12 @@ def fetchSentsFromPages(urlList):
         body = body.replace("\n", " ")
         body = body.replace("\t", " ")
         body = body.replace("\r", " ")
-        body = body.lower()
-        body = stemWords(body, rmStopWords=True)
+        # body = body.lower()
+        # body = stemWords(body, rmStopWords=True)
         # sentenece tokenize  also use concordance.
         # body_tokens= word_tokenize(body)
         # text =Text(body_tokens)
-        body = removePunctuations(body, ignore=".")
+        # body = removePunctuations(body, ignore=".")
         contents.append(body)
     return contents
 
