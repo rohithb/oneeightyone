@@ -41,6 +41,7 @@ INSTALLED_APPS = (
     'data_prep',
     'frontend',
     'dbinterface',
+    'query_preprocessing',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -81,7 +82,7 @@ WSGI_APPLICATION = 'main_project.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'classicmodels',
+        'NAME': 'country',
         'USER': 'root',
         'PASSWORD': 'root',
         'HOST': 'localhost',   # Or an IP Address that your DB is hosted on

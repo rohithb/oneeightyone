@@ -29,7 +29,7 @@ def removeStopWords(splitText):
 
 def fetchSentsFromPages(urlList):
     contents = []
-    for count in range(0, 1):
+    for count in range(0, 12):
         link = urlList[count]
         try:
             request_headers = {'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -54,7 +54,8 @@ def fetchSentsFromPages(urlList):
         # body_tokens= word_tokenize(body)
         # text =Text(body_tokens)
         # body = removePunctuations(body, ignore=".")
-        contents.append(body)
+        attr = link.lstrip("http://localhost/").rstrip(".html").lstrip('wiki/')
+        contents.append((attr,body))
     return contents
 
 

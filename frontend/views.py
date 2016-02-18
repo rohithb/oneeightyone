@@ -1,24 +1,30 @@
 from django.shortcuts import render_to_response
 from django.views.generic import View
 from django.db import connection
+from query_preprocessing.type_classifier import predictType
+from query_preprocessing.process_query import getNounPhrases,\
+    labelTransformedQuery
 
 
 class HomeController(View):
     def get(self, request, *args, **kwargs):
         tables = connection.introspection.table_names()
         tables = [table  for table in tables if not table.startswith('django')]
-        return render_to_response('frontend/tables.html', {'tables':tables})
-
-class TableDataController(View):
-    
-    def get(self, request, *args, **kwargs):
-        table = kwargs['table']
-        module = __import__('dbinterface')
-        class_ = getattr(module.models, table.title())
-        instance = class_()
-        contents = instance._default_manager.raw('select * from '+ table)        
-        return render_to_response('frontend/table_contents.html', {'contents': contents })
-
+        dbtable = request.GET.get('dbtable', None)
+        query = request.GET.get('query', None)
+        if dbtable and query:
+            queryType = predictType(query)
+            queryTrans = getNounPhrases(query)
+            queryLabeled = labelTransformedQuery(query, queryTrans, dbtable)
+            
+            return render_to_response('frontend/home.html',
+                                      {'tables': tables,
+                                       'queryType': queryType,
+                                       'queryIntermediate': queryTrans,
+                                       'queryLabeled': queryLabeled,
+                                       'query': query,
+                                       })
+        return render_to_response('frontend/home.html', {'tables':tables})
 
 class TableDataController1(View):
     
@@ -28,4 +34,4 @@ class TableDataController1(View):
         class_ = getattr(module.models, table.title())
         instance = class_()
         contents = instance._default_manager.raw('select * from '+ table)        
-        return render_to_response('frontend/table_contents.html', {'contents': contents })
+        return render_to_response('frontend/home.html', {'contents': contents })

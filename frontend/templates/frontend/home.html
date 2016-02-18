@@ -1,0 +1,62 @@
+{% load table_tags %}
+<html>
+<head>
+	<link href="/static/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+	<link href="/static/css/styles.css" rel="stylesheet"/>
+	<script type='text/javascript' src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+	<script type="text/javascript" src="/static/bootstrap/js/bootstrap.min.js"></script>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
+</head>
+<body>
+	<div class="welcome">
+    <div class="text-center container search-container">
+	    <form action="/" method="get">
+		    <div class="row">
+		    	<div class="col-xs-2">
+		    		<select id="dbtable" name="dbtable" class="form-control input-lg">
+						{% for tab in tables %}
+							<option value="{{tab}}">{{tab}}</option>
+						{% endfor %}
+		   	    	</select>
+		    	</div>
+		    	<div class="col-xs-10">
+		  			<div class="input-group input-group-lg">
+	                    <input type="text" name="query" value="{{query}}" class="form-control">
+	                    <span class="input-group-btn">
+	                      <button class="btn btn-flat" type="submit"><i class="fa fa-search"></i></button>
+	                    </span>
+	                  </div>
+	        	</div>
+		    </div>
+		 </form>
+    </div>
+</div>
+
+<div class="large-container">
+{{queryType}}<br/>
+{{queryIntermediate}}<br/>
+{{queryLabeled}}<br/>
+	{% if contents %}
+		<div class="datagrid">
+			<table>
+			<thead>
+			<tr>
+			{% for header in contents.columns %}
+				<th>{% convert_attribute_name header %}</th>
+			{% endfor %}
+			</tr>
+			</thead>
+			<tbody>
+			{% for c in contents %}
+			<tr>
+				{% print_row c contents %}
+			</tr>
+			{% endfor %}
+			</tbody>
+			</table>
+		</div>
+	{% endif %}
+</div>
+
+</body>
+</html>
