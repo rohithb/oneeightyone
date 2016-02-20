@@ -7,6 +7,7 @@ from query_preprocessing.models import MetaTable, MetaFields
 import httplib2 as http
 import json
 from urllib.parse import urlparse
+import sys
 
 
 def getNounPhrases(query):
@@ -58,13 +59,24 @@ def labelTransformedQuery(query, queryTrans, dbtable):
     
     if not query_processed['attribute']:
         attrName = resolveAttrNameUsingKB(query)
+        query_processed['attribute'].append({'attrName': attrName})
     return query_processed
 
 
 def resolveAttrNameUsingKB(query):
     g = Graph()
-    rootNodes = [i for i in g.find('ROOT')]
-    
+    large_weight = 0
+    large_wt_node = None
+    for node in g.find('ROOT'):
+        wt = shortestPathWeight(query, node)
+        # print(node.properties['phrase']+ ' : '+ str(wt), file=sys.stderr)
+        if  wt > large_weight:
+            large_wt_node = node
+            large_weight = wt
+    if large_wt_node is None:
+        return ''
+    return large_wt_node.properties['phrase']
+        
     
     
     
@@ -73,20 +85,22 @@ def shortestPathWeight(query, rootNode):
     stop = stopwords.words('english')
     query = query.split()
     g = Graph()
+    weight = 0
     for term in query:
+        pathSet = set()
         if term not in stop:
-            result = g.cypher.execute("MATCH (n:NP) where str(n.phrase) =~ '(?i).*region.*' return n")
+            result = g.cypher.execute("MATCH (n:NP) where str(n.phrase) =~ '(?i).*"+term+".*' return n")
             if result:
                 for item in result:
-                    uri = item.n.graph.url + item.n.ref + '/path'
+                    uri = item.n.graph.uri + item.n.ref + '/path'
                     headers = {
                                     'Accept': 'application/json',
                                     'Content-Type': 'application/json; charset=UTF-8'
                                 }
-                    target = urlparse(uri)
+                    target = urlparse(uri.string)
                     method = 'POST'
                     body = {
-                                "to": rootNode.graph.url+rootNode.ref,
+                                "to": str(rootNode.graph.uri+rootNode.ref),
                                 "max_depth": 20,
                                 "relationships" : {
                                     "type" : "DEPENDS"
@@ -96,6 +110,24 @@ def shortestPathWeight(query, rootNode):
                     body = json.dumps(body)
                     h = http.Http()
                     response, content = h.request(target.geturl(), method, body, headers)
-                    data = json.loads(content.decode())
+                    try:
+                        data = json.loads(content.decode())
+                        relationships = data['relationships']
+                        for rel in relationships:
+                            relId = rel[rel.rfind('/')+1:]
+                            rel = g.relationship(relId)
+                            pathSet.add(rel.properties['path_id'])
+                        weight = weight + harmonicProduct(len(pathSet))
+                    except:
+                        pass
+    return weight
 
+def harmonicProduct(n):
+    if n == 0:
+        return 0
+    pro = float(1)
+    for i in range(1, n+1):
+        pro = pro * (1.0/i)
+    return pro
+                            
     
