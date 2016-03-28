@@ -33,9 +33,11 @@
 </div>
 
 <div class="large-container">
-{{queryType}}<br/>
-{{queryIntermediate}}<br/>
-<b>{{queryLabeled}}</b>
+Original Query : {{query}} </br>
+Query Type: {{queryType}}<br/>
+Query Noun phrases: {{queryIntermediate}}<br/>
+Selectors: <b>{{selectors}}</b><br/>
+Constraints: <b>{{constraints}}</b>
 <br/>
 	{% if contents %}
 		<div class="datagrid">

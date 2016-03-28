@@ -50,11 +50,11 @@ def trainTypeClassifierPipeline():
     labels_train = labels
     
     type_clf.fit(features_train, labels_train)
-    joblib.dump(type_clf, 'query_preprocessing/pkl/type_clf.pkl')
+    joblib.dump(type_clf, '/home/rohith/nitk/main_project/query_preprocessing/pkl/type_clf.pkl')
     
 
 def predictType(query):
-    type_clf = joblib.load('query_preprocessing/pkl/type_clf.pkl')
+    type_clf = joblib.load('/home/rohith/nitk/main_project/query_preprocessing/pkl/type_clf.pkl')
     query = [query]
     query_type = type_clf.predict(query)
     return query_type[0].rstrip('\n')

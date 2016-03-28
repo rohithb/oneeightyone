@@ -8,7 +8,18 @@ import httplib2 as http
 import json
 from urllib.parse import urlparse
 import sys
+from nltk.tag import pos_tag
+from nltk.tokenize import word_tokenize
+from nltk import RegexpParser
 
+
+def splitNLQuery(query):
+    '''
+        Need to find out a mechanism to automatically split selector and filter part
+        from the query.
+        Possibly write a grammer to do so.
+    '''
+    return query.split("|")
 
 def getNounPhrases(query):
     posTagger = OpenNLP("/home/rohith/nitk/apache-opennlp-1.6.0", "POSTagger", "en-pos-maxent.bin")
@@ -24,8 +35,47 @@ def getNounPhrases(query):
         queryInter.append(item)
     return queryInter
 
-
+def  identifyAttribute(selectorPart, dbtable):
+    '''
+        To identify a single attribute from the selectorPart
+    '''
+    metaTable = MetaTable.objects.get(name=dbtable)
+    tableAltNames = metaTable.other_verbose_names.split(',')
+    tableAltNames.append(metaTable.verbose_name)
+    attribute = ''
+    queryTrans = getNounPhrases(selectorPart)
+    matchedTerm = ''
+    for term in queryTrans:
+        term = term.lower()
+        if term in typeDeterminers:
+            continue
+        elif term in tableAltNames:
+            attribute= "*"
+        else:
+            fields = MetaFields.objects.filter(name=term, table=metaTable)
+            if fields:
+                attribute = fields[0].name
+            else:
+                fields = MetaFields.objects.filter(verbose_name=term, table=metaTable)
+                if fields:
+                    attribute = fields[0].name
+                else:
+                    fields = MetaFields.objects.filter(other_verbose_names__contains=term, table=metaTable)
+                    if fields:
+                        attribute = fields[0].name
+        if attribute:
+            matchedTerm = term
+            break
+    if attribute:
+        return matchedTerm, attribute
+    else:
+        attribute = resolveAttrNameUsingKB(selectorPart)
+        return matchedTerm, attribute
+    
 def labelTransformedQuery(query, queryTrans, dbtable):
+    '''
+        currently not using 
+    '''
     query_processed = {}
     metaTable = MetaTable.objects.get(name=dbtable)
     tableAltNames = metaTable.other_verbose_names.split(',')
@@ -129,5 +179,87 @@ def harmonicProduct(n):
     for i in range(1, n+1):
         pro = pro * (1.0/i)
     return pro
-                            
+
+def tag(x):
+    return pos_tag(word_tokenize(x))
+
+def findRelationshipStr(phrase):
+    adjectives = "JJ JJR JJS".split()
+    prepositions = ["IN"]
+    phrase = tag(phrase)
+    for i in range(len(phrase) - 1):
+        if (phrase[i][1] in prepositions) & (phrase[i+1][1] in ["CD"]):
+            return [phrase[i][0]]
+    return None
+
+    
+def findRelationshipUsingGrammer(phrase):
+    phrase = tag(phrase)
+    grammer ='REL: {<RB><RBR><IN>|' \
+                 '<RB><JJ|JJR|JJS><IN>|' \
+                 '<JJ|JJR|JJS><IN>|' \
+                 '<JJ|JJR|JJS>}'
+    parseTree = RegexpParser(grammer).parse(phrase)
+    for i in parseTree.subtrees(filter=lambda x: x.label() == 'REL'):
+        return ' '.join([ k[0] for k in list(i)])
+
+    
+    
+def identifyConstraints(constraintsPart, dbtable):
+    '''
+        OR has less precedence than that of AND.
+        Returns a list, relation between each element in the list will be OR
+        o/p should look like
+        [
+            {'AND': [
+                        {'attribute': ...,
+                         'relatoion': ...,
+                         'value': ...
+                        },
+                        {'attribute': ...,
+                         'relatoion': ...,
+                         'value': ...
+                        }
+                    ]
+            },
+            {'attribute': ...,
+             'relatoion': ...,
+             'value': ...
+            }
+        ]
+    
+    '''
+    constraints = []
+    if not constraintsPart:
+        return []
+    constraintsPart = constraintsPart.lower()
+    orSplit = constraintsPart.split(' or ')
+    for orPart in orSplit:
+        andSplit = re.split(' and |,', orPart)
+        if len(andSplit) > 1:
+            # means and inside or 
+            andTemp = []
+            for part in andSplit:
+                temp = {} 
+                matchedTerm, temp['attribute'] = identifyAttribute(part, dbtable)
+                # identify relationship
+                part = part.replace(matchedTerm, '')
+                temp['relation'] = findRelationshipUsingGrammer(part)
+                if not temp['relation']:
+                    temp['relation'] = findRelationshipStr(part)
+                # identify value
+                andTemp.append(temp)
+            constraints.append({'AND': andTemp})
+        else:
+            temp = {}
+            part = andSplit[0]
+            matchedTerm, temp['attribute'] = identifyAttribute(part , dbtable)
+            # identify relationship
+            part = part.replace(matchedTerm, '')
+            temp['relation'] = findRelationshipUsingGrammer(part)
+            if not temp['relation']:
+                    temp['relation'] = findRelationshipStr(part)
+            # identify value
+            constraints.append(temp)
+    return constraints     
     
