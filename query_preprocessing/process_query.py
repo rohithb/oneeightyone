@@ -11,6 +11,7 @@ import sys
 from nltk.tag import pos_tag
 from nltk.tokenize import word_tokenize
 from nltk import RegexpParser
+from query_preprocessing.operator_mapper import findOperator
 
 
 def splitNLQuery(query):
@@ -189,7 +190,7 @@ def findRelationshipStr(phrase):
     phrase = tag(phrase)
     for i in range(len(phrase) - 1):
         if (phrase[i][1] in prepositions) & (phrase[i+1][1] in ["CD"]):
-            return [phrase[i][0]]
+            return phrase[i][0]
     return None
 
     
@@ -198,13 +199,22 @@ def findRelationshipUsingGrammer(phrase):
     grammer ='REL: {<RB><RBR><IN>|' \
                  '<RB><JJ|JJR|JJS><IN>|' \
                  '<JJ|JJR|JJS><IN>|' \
-                 '<JJ|JJR|JJS>}'
+                 '<JJ|JJR|JJS>|' \
+                 '<JJ|JJR|JJS><TO>}'
     parseTree = RegexpParser(grammer).parse(phrase)
     for i in parseTree.subtrees(filter=lambda x: x.label() == 'REL'):
         return ' '.join([ k[0] for k in list(i)])
 
     
-    
+def findSimpleValues(query):
+    query = tag(query)
+    query.reverse()
+    target_tags = "CD NN NNS NNP NNPS".split()
+    for  i in range(len(query)-1):
+        if query[i][1] in target_tags:
+            return query[i][0]
+    return None
+
 def identifyConstraints(constraintsPart, dbtable):
     '''
         OR has less precedence than that of AND.
@@ -247,7 +257,11 @@ def identifyConstraints(constraintsPart, dbtable):
                 temp['relation'] = findRelationshipUsingGrammer(part)
                 if not temp['relation']:
                     temp['relation'] = findRelationshipStr(part)
+                if temp['relation']:
+                    temp['relation'] = findOperator(temp['relation'])
                 # identify value
+                # this works for only simple/single values
+                temp['value'] = findSimpleValues(part)
                 andTemp.append(temp)
             constraints.append({'AND': andTemp})
         else:
@@ -259,7 +273,11 @@ def identifyConstraints(constraintsPart, dbtable):
             temp['relation'] = findRelationshipUsingGrammer(part)
             if not temp['relation']:
                     temp['relation'] = findRelationshipStr(part)
+            if temp['relation']:
+                    temp['relation'] = findOperator(temp['relation'])
             # identify value
+            # this works for only simple/single values
+            temp['value'] = findSimpleValues(part)
             constraints.append(temp)
     return constraints     
     

@@ -33,18 +33,18 @@
 </div>
 
 <div class="large-container">
-Original Query : {{query}} </br>
+Original Query : {{query}} <br/>
 Query Type: {{queryType}}<br/>
-Query Noun phrases: {{queryIntermediate}}<br/>
 Selectors: <b>{{selectors}}</b><br/>
-Constraints: <b>{{constraints}}</b>
+Constraints: <b>{{constraints}}</b><br/>
+SQL Query: <b>{{sql_query}}</b>
 <br/>
 	{% if contents %}
 		<div class="datagrid">
 			<table>
 			<thead>
 			<tr>
-			{% for header in contents.columns %}
+			{% for header in columns %}
 				<th>{% convert_attribute_name header %}</th>
 			{% endfor %}
 			</tr>
@@ -52,7 +52,7 @@ Constraints: <b>{{constraints}}</b>
 			<tbody>
 			{% for c in contents %}
 			<tr>
-				{% print_row c contents %}
+				{% print_row_from_tuple c %}
 			</tr>
 			{% endfor %}
 			</tbody>
